@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Login or Register to PropManage">
+    <title>PropManage | Authentication</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <a href="index.html" class="nav-brand">Prop<span>Manage</span></a>
+    </nav>
+
+    <main>
+        <div class="auth-container glass-panel">
+            <div class="auth-tabs">
+                <button class="tab-btn active" onclick="switchAuth('login', event)">Login</button>
+                <button class="tab-btn" onclick="switchAuth('register', event)">Register</button>
+            </div>
+
+            <!-- Login Form -->
+            <form id="loginForm" onsubmit="handleAuth(event, 'login')">
+                <h2 style="text-align: center; margin-bottom: 2rem;" class="gradient-text">Welcome Back</h2>
+                
+                <div class="form-group">
+                    <label for="loginRole">Select Role</label>
+                    <select id="loginRole" required>
+                        <option value="Admin">Admin</option>
+                        <option value="Landlord">Landlord</option>
+                        <option value="Property Manager">Property Manager</option>
+                        <option value="Tenant" selected>Tenant</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="loginEmail">Email Address</label>
+                    <input type="email" id="loginEmail" placeholder="you@example.com" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="loginPassword">Password</label>
+                    <input type="password" id="loginPassword" placeholder="••••••••" required>
+                </div>
+                
+                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">Sign In</button>
+            </form>
+
+            <!-- Register Form (Hidden by default) -->
+            <form id="registerForm" onsubmit="handleAuth(event, 'register')" style="display: none;">
+                <h2 style="text-align: center; margin-bottom: 2rem;" class="gradient-text">Create Account</h2>
+                
+                <div class="form-group">
+                    <label for="regRole">Select Role</label>
+                    <select id="regRole" required>
+                        <option value="Admin">Admin</option>
+                        <option value="Landlord">Landlord</option>
+                        <option value="Property Manager">Property Manager</option>
+                        <option value="Tenant" selected>Tenant</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="regName">Full Name</label>
+                    <input type="text" id="regName" placeholder="John Doe" required minlength="3">
+                </div>
+
+                <div class="form-group">
+                    <label for="regEmail">Email Address</label>
+                    <input type="email" id="regEmail" placeholder="you@example.com" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="regPassword">Password</label>
+                    <input type="password" id="regPassword" placeholder="••••••••" required minlength="6">
+                </div>
+                
+                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">Register</button>
+            </form>
+            
+            <div id="authMessage" style="text-align: center; margin-top: 1rem; color: var(--success); display: none;"></div>
+        </div>
+    </main>
+
+    <script>
+        function switchAuth(tab, e) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            if(e) e.target.classList.add('active');
+            
+            if(tab === 'login') {
+                document.getElementById('loginForm').style.display = 'block';
+                document.getElementById('registerForm').style.display = 'none';
+            } else {
+                document.getElementById('loginForm').style.display = 'none';
+                document.getElementById('registerForm').style.display = 'block';
+            }
+        }
+
+        async function handleAuth(e, type) {
+            e.preventDefault();
+            const btn = e.target.querySelector('button[type="submit"]');
+            const originalText = btn.innerText;
+            btn.innerText = 'Processing...';
+            
+            const role = type === 'login' ? document.getElementById('loginRole').value : document.getElementById('regRole').value;
+            const email = type === 'login' ? document.getElementById('loginEmail').value : document.getElementById('regEmail').value;
+            const name = type === 'register' ? document.getElementById('regName').value : '';
+            const password = type === 'login' ? document.getElementById('loginPassword').value : document.getElementById('regPassword').value;
+
+            // Enforce tenant registration requirement
+            if (type === 'login' && role === 'tenant') {
+                document.getElementById('authMessage').innerText = '❌ Tenants must register first! Please switch to Register tab.';
+                document.getElementById('authMessage').style.color = 'var(--danger)';
+                document.getElementById('authMessage').style.display = 'block';
+                btn.innerText = originalText;
+                return;
+            }
+
+            localStorage.setItem('role', role);
+            localStorage.setItem('email', email);
+            if(name) localStorage.setItem('name', name);
+
+            try {
+                const response = await fetch(`/api/auth/${type}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, role, name, password })
+                });
+                
+                let data = await response.json();
+                
+                if(response.ok) {
+                    if(data.token) {
+                        localStorage.setItem('token', data.token);
+                        if (data.user) {
+                            localStorage.setItem('role', data.user.role);
+                            localStorage.setItem('name', data.user.name);
+                        }
+                        
+                        document.getElementById('authMessage').innerText = data.message;
+                        document.getElementById('authMessage').style.color = 'var(--success)';
+                        document.getElementById('authMessage').style.display = 'block';
+                        setTimeout(() => {
+                            window.location.href = 'dashboard.html';
+                        }, 1000);
+                    } else {
+                        document.getElementById('authMessage').innerText = data.message;
+                        document.getElementById('authMessage').style.color = 'var(--success)';
+                        document.getElementById('authMessage').style.display = 'block';
+                    }
+                } else {
+                    document.getElementById('authMessage').innerText = data.error || 'Authentication failed';
+                    document.getElementById('authMessage').style.color = 'red';
+                    document.getElementById('authMessage').style.display = 'block';
+                }
+            } catch (error) {
+                console.error(error);
+                document.getElementById('authMessage').innerText = 'Network error. Please try again later.';
+                document.getElementById('authMessage').style.color = 'red';
+                document.getElementById('authMessage').style.display = 'block';
+            } finally {
+                btn.innerText = originalText;
+            }
+        }
+    </script>
+</body>
+</html>

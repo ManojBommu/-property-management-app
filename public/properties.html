@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Find your dream property with our premier property management system">
+    <title>PropManage | Find Your Next Home</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <nav class="navbar glass-panel">
+        <a href="index.html" class="nav-brand">Prop<span>Manage</span></a>
+        <div class="nav-links">
+            <a href="properties.html">Properties</a>
+            <a href="index.html" class="btn btn-outline">Sign In</a>
+            <a href="index.html" class="btn btn-primary">Sign Up</a>
+        </div>
+    </nav>
+
+    <main>
+        <section class="hero">
+            <h1 class="gradient-text">Discover Your Perfect Space</h1>
+            <p>Browse through hundreds of premium properties, filter by your needs, and apply seamlessly.</p>
+            
+            <div class="property-filters glass-panel">
+                <input type="text" id="searchLocation" class="filter-input" placeholder="Search by location or name...">
+                <select id="priceRange" class="filter-input">
+                    <option value="">Any Price</option>
+                    <option value="0-1000">Under $1,000</option>
+                    <option value="1000-2000">$1,000 - $2,000</option>
+                    <option value="2000+">$2,000+</option>
+                </select>
+                <select id="propertyType" class="filter-input">
+                    <option value="">Any Type</option>
+                    <option value="apartment">Apartment</option>
+                    <option value="house">House</option>
+                    <option value="loft">Loft</option>
+                </select>
+                <button class="btn btn-primary">Search</button>
+            </div>
+        </section>
+
+        <section id="properties">
+            <div class="property-grid" id="propertyGrid">
+                <!-- Properties injected by JS -->
+                <p>Loading premium properties...</p>
+            </div>
+        </section>
+    </main>
+
+    <script src="js/main.js"></script>
+</body>
+</html>

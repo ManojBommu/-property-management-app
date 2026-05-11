@@ -41,7 +41,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
 
 // MongoDB Connection
-mongoose.connect('mongodb://127.0.0.1:27017/propmanage')
+mongoose.connect(process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/propmanage')
   .then(() => console.log('Connected to MongoDB successfully!'))
   .catch(err => console.error('MongoDB connection error. Starting without DB.', err.message));
 

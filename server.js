@@ -51,6 +51,7 @@ let memoryPayments = [];
 let memoryBookings = [];
 let memoryMaintenance = [];
 let registeredTenants = [];
+let memoryUsers = [];
 
 // API Endpoints
 app.get('/api/properties', async (req, res) => {
@@ -217,7 +218,20 @@ app.post('/api/auth/register', async (req, res) => {
         const { email, password, name, role } = req.body;
         
         if(mongoose.connection.readyState !== 1) {
-             return res.status(500).json({ error: 'Database not connected.' });
+             const existingUser = memoryUsers.find(u => u.email === email);
+             if (existingUser) return res.status(400).json({ error: 'User already exists' });
+             const hashedPassword = await bcrypt.hash(password, 10);
+             const userCount = memoryUsers.length;
+             let isApproved = false;
+             let finalRole = role;
+             if (userCount === 0) { isApproved = true; finalRole = 'Admin'; }
+             const newUser = { _id: Date.now().toString(), name, email, password: hashedPassword, role: finalRole, isApproved };
+             memoryUsers.push(newUser);
+             if (!isApproved) {
+                 return res.json({ message: 'Registration successful! Please wait for an Admin to approve your account.' });
+             } else {
+                 return res.json({ message: 'Registration successful! You are the first user and have been granted Admin access automatically.' });
+             }
         }
 
         const existingUser = await User.findOne({ email });
@@ -258,11 +272,13 @@ app.post('/api/auth/login', async (req, res) => {
     try {
         const { email, password, role } = req.body;
 
+        let user;
         if(mongoose.connection.readyState !== 1) {
-             return res.status(500).json({ error: 'Database not connected.' });
+             user = memoryUsers.find(u => u.email === email);
+        } else {
+             user = await User.findOne({ email });
         }
 
-        const user = await User.findOne({ email });
         if (!user) return res.status(400).json({ error: 'Invalid email or password' });
 
         const isMatch = await bcrypt.compare(password, user.password);
@@ -286,6 +302,10 @@ app.post('/api/auth/login', async (req, res) => {
 
 app.get('/api/users/pending', authMiddleware, adminMiddleware, async (req, res) => {
     try {
+        if(mongoose.connection.readyState !== 1) {
+            const pendingUsers = memoryUsers.filter(u => !u.isApproved).map(u => ({...u, password: undefined}));
+            return res.json(pendingUsers);
+        }
         const pendingUsers = await User.find({ isApproved: false }).select('-password');
         res.json(pendingUsers);
     } catch (err) {
@@ -295,6 +315,11 @@ app.get('/api/users/pending', authMiddleware, adminMiddleware, async (req, res) 
 
 app.put('/api/users/approve/:id', authMiddleware, adminMiddleware, async (req, res) => {
     try {
+        if(mongoose.connection.readyState !== 1) {
+            const user = memoryUsers.find(u => u._id == req.params.id);
+            if (user) user.isApproved = true;
+            return res.json({...user, password: undefined});
+        }
         const user = await User.findByIdAndUpdate(req.params.id, { isApproved: true }, { new: true }).select('-password');
         res.json(user);
     } catch (err) {
